@@ -17,7 +17,7 @@ public class User {
         KASIR, ADMIN, MANAGER, CUSTOMER
     }
     
-    // Constructors
+    // Constrs
     public User() {}
     
     public User(String username, String password, Role role, String fullName, String email) {
