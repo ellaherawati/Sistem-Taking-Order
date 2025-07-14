@@ -8,8 +8,13 @@ import java.text.NumberFormat;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
+import java.util.UUID;
 import javax.imageio.ImageIO;
 import javax.swing.*;
+import view.CustomerFrame.OrderItem;
+import java.awt.print.*;
+import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
 
 public class CustomerFrame extends JFrame {
     // Data untuk menu items
@@ -69,18 +74,8 @@ public class CustomerFrame extends JFrame {
             this.quantity = quantity;
         }
     }
-    
     // Method untuk logout
-    private void logout() {
-        int choice = JOptionPane.showConfirmDialog(this, 
-            "Apakah Anda yakin ingin keluar?", 
-            "Konfirmasi Logout", 
-            JOptionPane.YES_NO_OPTION);
-        
-        if (choice == JOptionPane.YES_OPTION) {
-            dispose(); // Menutup frame
-        }
-    }
+
 
     public CustomerFrame() {
         currencyFormat = NumberFormat.getCurrencyInstance(new Locale("id", "ID"));
@@ -89,16 +84,44 @@ public class CustomerFrame extends JFrame {
         setupLayout();
         setupEventHandlers();
     }
-    
-    private void setupEventHandlers() {
-        // Window closing handler
-        setDefaultCloseOperation(JFrame.DO_NOTHING_ON_CLOSE);
-        addWindowListener(new java.awt.event.WindowAdapter() {
+    private void printNota(String idNota, int total, List<OrderItem> orderItems, String paymentMethod) {
+        // Simulasi printing - bisa diganti dengan implementasi printer sesungguhnya
+        JDialog printDialog = new JDialog(this, "Mencetak Nota", true);
+        printDialog.setSize(300, 150);
+        printDialog.setLocationRelativeTo(this);
+        
+        JPanel panel = new JPanel(new BorderLayout());
+        panel.setBorder(BorderFactory.createEmptyBorder(20, 20, 20, 20));
+        
+        JLabel printingLabel = new JLabel("Sedang mencetak nota...", SwingConstants.CENTER);
+        printingLabel.setFont(new Font("Arial", Font.PLAIN, 16));
+        
+        JProgressBar progressBar = new JProgressBar();
+        progressBar.setIndeterminate(true);
+        
+        panel.add(printingLabel, BorderLayout.CENTER);
+        panel.add(progressBar, BorderLayout.SOUTH);
+        
+        printDialog.setContentPane(panel);
+        printDialog.setVisible(true);
+        
+        // Simulasi delay printing
+        SwingWorker<Void, Void> printWorker = new SwingWorker<Void, Void>() {
             @Override
-            public void windowClosing(java.awt.event.WindowEvent windowEvent) {
-                logout();
+            protected Void doInBackground() throws Exception {
+                // Simulasi proses printing (2 detik)
+                Thread.sleep(2000);
+                return null;
             }
-        });
+            
+            @Override
+            protected void done() {
+                printDialog.dispose();
+                showPrintSuccessDialog(idNota, total, orderItems, paymentMethod);
+            }
+        };
+        
+        printWorker.execute();
     }
     
     private void initializeMenuData() {
@@ -519,7 +542,7 @@ public class CustomerFrame extends JFrame {
         JPanel checkoutPanel = new JPanel(new BorderLayout());
         checkoutPanel.setBackground(new Color(248, 249, 250));
         
-        JButton checkoutButton = new JButton("KERANJANG");
+        JButton checkoutButton = new JButton(" Checkout");
         checkoutButton.setFont(new Font("Arial", Font.BOLD, 16));
         checkoutButton.setBackground(new Color(40, 167, 69));
         checkoutButton.setForeground(Color.WHITE);
@@ -670,94 +693,157 @@ public class CustomerFrame extends JFrame {
             JOptionPane.showMessageDialog(this, "Keranjang masih kosong!", "Peringatan", JOptionPane.WARNING_MESSAGE);
             return;
         }
-        
-        // Hitung total
-        int total = 0;
-        for (OrderItem orderItem : orderItems) {
-            total += orderItem.menuItem.price * orderItem.quantity;
-        }
-        
-        // Buat ringkasan pesanan
-        StringBuilder orderSummary = new StringBuilder("Ringkasan Pesanan:\n\n");
-        for (OrderItem orderItem : orderItems) {
-            int itemTotal = orderItem.menuItem.price * orderItem.quantity;
-            orderSummary.append(String.format("%s x%d - Rp. %,d\n", 
+    
+     // Hitung total
+     int total = 0;
+     for (OrderItem orderItem : orderItems) {
+         total += orderItem.menuItem.price * orderItem.quantity;
+     }
+    
+        // Buat ringkasan pesanan sebagai HTML
+    StringBuilder orderSummaryHtml = new StringBuilder("<html><body style='width:300px'>");
+    orderSummaryHtml.append("<h3>Ringkasan Pesanan:</h3><ul>");
+    for (OrderItem orderItem : orderItems) {
+        int itemTotal = orderItem.menuItem.price * orderItem.quantity;
+        orderSummaryHtml.append(String.format("<li>%s x%d - Rp %,d</li>",
                 orderItem.menuItem.name, orderItem.quantity, itemTotal));
-        }
-        orderSummary.append("\nTotal: Rp. ").append(String.format("%,d", total));
-        orderSummary.append("\n\nLanjutkan ke pembayaran?");
-        
-        // Konfirmasi pesanan
-        int choice = JOptionPane.showConfirmDialog(this, orderSummary.toString(), 
-            "Konfirmasi Pesanan", JOptionPane.YES_NO_OPTION);
-        
-        if (choice == JOptionPane.YES_OPTION) {
-            // Pesanan berhasil dibuat
-            JOptionPane.showMessageDialog(this, "Pesanan berhasil dibuat!\nSilakan memilih metode pembayaran.", 
-                "Pesanan Berhasil", JOptionPane.INFORMATION_MESSAGE);
-    
-            // Tampilkan dialog metode pembayaran
-            PaymentMethodDialog paymentDialog = new PaymentMethodDialog(this, total);
-            paymentDialog.setVisible(true);
-    
-            // Ambil metode pembayaran yang dipilih
-            String metodeBayar = paymentDialog.getSelectedPaymentMethod();
-    
-            if (metodeBayar != null) {
-                JOptionPane.showMessageDialog(this, "Anda memilih metode pembayaran: " + metodeBayar);
-                // Lanjutkan proses bayar sesuai metodeBayar, misalnya simpan data pembayaran dll
-            } else {
-                JOptionPane.showMessageDialog(this, "Pembayaran dibatalkan.", "Info", JOptionPane.INFORMATION_MESSAGE);
-            }
-    
-            // Bersihkan keranjang dan update tampilan
-            orderItems.clear();
-            updateOrderDisplay();
-        }
     }
-    private class PaymentMethodDialog extends JDialog {
+    orderSummaryHtml.append("</ul>");
+    orderSummaryHtml.append(String.format("<b>Total: Rp %,d</b>", total));
+    orderSummaryHtml.append("</body></html>");
+
+    JLabel summaryLabel = new JLabel(orderSummaryHtml.toString());
+
+        // Panel input nama customer dan pesan opsional
+    JPanel inputPanel = new JPanel(new GridBagLayout());
+    GridBagConstraints gbc = new GridBagConstraints();
+    gbc.insets = new Insets(5, 5, 5, 5);
+
+    gbc.gridx = 0;
+    gbc.gridy = 0;
+    gbc.anchor = GridBagConstraints.LINE_END;
+    inputPanel.add(new JLabel("Nama Customer:"), gbc);
+
+    gbc.gridx = 1;
+    gbc.fill = GridBagConstraints.HORIZONTAL;
+    JTextField nameField = new JTextField(15);
+    inputPanel.add(nameField, gbc);
+
+    gbc.gridx = 0;
+    gbc.gridy = 1;
+    gbc.fill = GridBagConstraints.NONE;
+    gbc.anchor = GridBagConstraints.FIRST_LINE_END;
+    inputPanel.add(new JLabel("Pesan (Opsional):"), gbc);
+
+    gbc.gridx = 1;
+    gbc.fill = GridBagConstraints.BOTH;
+    JTextArea messageArea = new JTextArea(5, 20);
+    messageArea.setLineWrap(true);
+    messageArea.setWrapStyleWord(true);
+    JScrollPane scrollPane = new JScrollPane(messageArea);
+    inputPanel.add(scrollPane, gbc);
+
+    JPanel mainPanel = new JPanel(new BorderLayout(10, 10));
+    mainPanel.add(summaryLabel, BorderLayout.NORTH);
+    mainPanel.add(inputPanel, BorderLayout.CENTER);
+    mainPanel.add(new JLabel("\nLanjutkan ke pembayaran?"), BorderLayout.SOUTH);
+
+    while (true) {
+        int choice = JOptionPane.showConfirmDialog(this, mainPanel,
+                "Konfirmasi Pesanan", JOptionPane.YES_NO_OPTION, JOptionPane.PLAIN_MESSAGE);
+    
+        if (choice == JOptionPane.NO_OPTION || choice == JOptionPane.CLOSED_OPTION) {
+            break;
+        }
+    
+        String customerName = nameField.getText().trim();
+        if (customerName.isEmpty()) {
+            JOptionPane.showMessageDialog(this, "Nama customer harus diisi!", "Error", JOptionPane.ERROR_MESSAGE);
+            continue;
+        }
+    
+        String messageOptional = messageArea.getText().trim();
+    
+        String msg = "Pesanan berhasil dibuat untuk: " + customerName;
+        if (!messageOptional.isEmpty()) {
+            msg += "\nPesan: " + messageOptional;
+        }
+        msg += "\nSilakan memilih metode pembayaran.";
+        JOptionPane.showMessageDialog(this, msg, "Pesanan Berhasil", JOptionPane.INFORMATION_MESSAGE);
+    
+        break;
+    }
+    
+     // Tampilkan dialog metode pembayaran
+    PaymentMethodDialog paymentDialog = new PaymentMethodDialog(this, total);
+    paymentDialog.setVisible(true);
+
+    String metodeBayar = paymentDialog.getSelectedPaymentMethod();
+
+    if (metodeBayar != null) {
+        if (metodeBayar.equals("QRIS")) {
+            // Untuk QRIS sudah ditangani di PaymentMethodDialog
+        } else if (metodeBayar.equals("Cash")) {
+            // Untuk Cash sudah ditangani di PaymentMethodDialog
+        }
+    } else {
+        JOptionPane.showMessageDialog(this, "Pembayaran dibatalkan.", "Info", JOptionPane.INFORMATION_MESSAGE);
+    }
+    
+    // Bersihkan keranjang dan update tampilan
+    orderItems.clear();
+    updateOrderDisplay();
+    }
+
+    class PaymentMethodDialog extends JDialog {
         private int totalAmount;
         private String selectedPaymentMethod;
-
+        private NumberFormat currencyFormat;
+        private CustomerFrame parentFrame; // Add reference to parent frame
+    
         public PaymentMethodDialog(Frame parent, int totalAmount) {
             super(parent, "Metode Pembayaran", true);
             this.totalAmount = totalAmount;
+            this.parentFrame = (CustomerFrame) parent; // Store reference to parent frame
+            this.currencyFormat = NumberFormat.getCurrencyInstance(new Locale("id", "ID"));
+    
+            setSize(400, 250);
+            setLocationRelativeTo(parent);
+    
+            JPanel panel = new JPanel();
+            panel.setLayout(new BorderLayout());
+    
+            JLabel titleLabel = new JLabel(
+                "<html><center><h2>Metode Pembayaran</h2>Total: Rp " + String.format("%,d", totalAmount) + "</center></html>",
+                SwingConstants.CENTER);
+            panel.add(titleLabel, BorderLayout.NORTH);
+    
+            // Panel tombol metode pembayaran
+            JPanel btnPanel = new JPanel(new FlowLayout(FlowLayout.CENTER, 30, 20));
+    
+            // Tombol Cash
+            JButton cashButton = new JButton("Cash");
+            cashButton.setPreferredSize(new Dimension(120, 80));
+            cashButton.addActionListener(e -> {
+                selectedPaymentMethod = "Cash";
+                showNotaDetail();
+                dispose();
+            });
+        
 
-        setSize(400, 250);
-        setLocationRelativeTo(parent);
-
-        JPanel panel = new JPanel();
-        panel.setLayout(new BorderLayout());
-
-        JLabel titleLabel = new JLabel(
-            "<html><center><h2>Metode Pembayaran</h2>Total: Rp " + String.format("%,d", totalAmount) + "</center></html>",
-            SwingConstants.CENTER);
-        panel.add(titleLabel, BorderLayout.NORTH);
-
-        // Panel tombol metode pembayaran
-        JPanel btnPanel = new JPanel(new FlowLayout(FlowLayout.CENTER, 30, 20));
-
-        // Tombol Cash
-        JButton cashButton = new JButton("Cash");
-        cashButton.setPreferredSize(new Dimension(120, 80));
-        cashButton.addActionListener(e -> {
-            selectedPaymentMethod = "Cash";
-            dispose();
-        });
-
-        // Tombol QRIS
-        JButton qrisButton = new JButton("QRIS");
-        qrisButton.setPreferredSize(new Dimension(120, 80));
-        qrisButton.addActionListener(e -> {
-            selectedPaymentMethod = "QRIS";
-            showQRISPopup(totalAmount);
-            dispose();
-        });
-
-        btnPanel.add(cashButton);
-        btnPanel.add(qrisButton);
-
-        panel.add(btnPanel, BorderLayout.CENTER);
+            // Tombol QRIS
+            JButton qrisButton = new JButton("QRIS");
+            qrisButton.setPreferredSize(new Dimension(120, 80));
+            qrisButton.addActionListener(e -> {
+                selectedPaymentMethod = "QRIS";
+                showQRISPopup(totalAmount);
+                dispose();
+            });
+    
+            btnPanel.add(cashButton);
+            btnPanel.add(qrisButton);
+    
+            panel.add(btnPanel, BorderLayout.CENTER);
 
         // Tombol batal
         JButton cancelButton = new JButton("Batal");
@@ -776,43 +862,407 @@ public class CustomerFrame extends JFrame {
         return selectedPaymentMethod;
     }
 
-    private void showQRISPopup(int total) {
-        // Generate kode barcode random sebagai string
-        String randomBarcode = "QRIS-" + (int)(Math.random() * 1000000);
-
-        JDialog qrisDialog = new JDialog(this, "Pembayaran QRIS", true);
-        qrisDialog.setSize(350, 300);
-        qrisDialog.setLocationRelativeTo(this);
-
-        JPanel contentPanel = new JPanel(new BorderLayout(10, 10));
-        contentPanel.setBorder(BorderFactory.createEmptyBorder(15, 15, 15, 15));
-
-        // Label barcode (sebagai teks)
-        JLabel barcodeLabel = new JLabel(randomBarcode, SwingConstants.CENTER);
-        barcodeLabel.setFont(new Font("Monospaced", Font.BOLD, 20));
-        barcodeLabel.setBorder(BorderFactory.createLineBorder(Color.BLACK));
-        barcodeLabel.setPreferredSize(new Dimension(300, 100));
-
-        // Label rincian pembayaran
-        JLabel detailLabel = new JLabel(
-            "<html><center>Total pembayaran:<br>Rp " + String.format("%,d", total) + "<br><br>" +
-            "Silakan scan barcode di atas menggunakan aplikasi QRIS Anda.</center></html>",
-            SwingConstants.CENTER);
-
-        JButton okButton = new JButton("OK");
-        okButton.addActionListener(e -> qrisDialog.dispose());
-
-        contentPanel.add(barcodeLabel, BorderLayout.NORTH);
-        contentPanel.add(detailLabel, BorderLayout.CENTER);
-        contentPanel.add(okButton, BorderLayout.SOUTH);
-
-        qrisDialog.setContentPane(contentPanel);
-        qrisDialog.setVisible(true);
+    private void updateCartPanel() {
+        Container cartPanel = null;
+        cartPanel.removeAll();
+        for (OrderItem item : orderItems) {
+            JLabel itemLabel = new JLabel(item.menuItem.name + " x " + item.quantity);
+            cartPanel.add(itemLabel);
+        }
+        cartPanel.revalidate();
+        cartPanel.repaint();
     }
 
+    private void updateTotalLabel() {
+        int total = 0;
+        for (OrderItem item : orderItems) {
+            total += item.menuItem.price * item.quantity;
+        }
+        JLabel totalLabel = null;
+        totalLabel.setText("Total: " + currencyFormat.format(total));
+    }
+
+    private void showNotaDetail() {
+        String idNota = UUID.randomUUID().toString().substring(0, 8).toUpperCase();
+        // Use the parent frame's order items
+        showNotaPopupForCash(idNota, totalAmount, parentFrame.orderItems);
+    }
+
+    private void showNotaPopupForCash(String idNota, int total, List<OrderItem> orderItems) {
+        JDialog notaDialog = new JDialog(this, "Nota Pembayaran - Cash", true);
+        notaDialog.setSize(400, 500);
+        notaDialog.setLocationRelativeTo(this);
+        
+        JPanel mainPanel = new JPanel(new BorderLayout(10, 10));
+        mainPanel.setBorder(BorderFactory.createEmptyBorder(20, 20, 20, 20));
+        
+        // Header nota
+        JPanel headerPanel = new JPanel(new BorderLayout());
+        JLabel titleLabel = new JLabel("NOTA PEMBAYARAN", SwingConstants.CENTER);
+        titleLabel.setFont(new Font("Arial", Font.BOLD, 18));
+        
+        JLabel idLabel = new JLabel("ID Pembayaran: " + idNota, SwingConstants.CENTER);
+        idLabel.setFont(new Font("Arial", Font.PLAIN, 14));
+        idLabel.setForeground(new Color(100, 100, 100));
+        
+        headerPanel.add(titleLabel, BorderLayout.NORTH);
+        headerPanel.add(idLabel, BorderLayout.CENTER);
+        
+        // Detail pesanan
+        JPanel detailPanel = new JPanel();
+        detailPanel.setLayout(new BoxLayout(detailPanel, BoxLayout.Y_AXIS));
+        detailPanel.setBorder(BorderFactory.createTitledBorder("Detail Pesanan"));
+        
+        // Use orderItems parameter
+        for (OrderItem orderItem : orderItems) {
+            JPanel itemPanel = new JPanel(new BorderLayout());
+            itemPanel.setBorder(BorderFactory.createEmptyBorder(5, 5, 5, 5));
+            
+            JLabel itemLabel = new JLabel(orderItem.menuItem.name + " x" + orderItem.quantity);
+            itemLabel.setFont(new Font("Arial", Font.PLAIN, 12));
+            
+            JLabel priceLabel = new JLabel("Rp " + String.format("%,d", orderItem.menuItem.price * orderItem.quantity));
+            priceLabel.setFont(new Font("Arial", Font.PLAIN, 12));
+            
+            itemPanel.add(itemLabel, BorderLayout.WEST);
+            itemPanel.add(priceLabel, BorderLayout.EAST);
+            detailPanel.add(itemPanel);
+        }
     
+        JPanel totalPanel = new JPanel(new BorderLayout());
+        totalPanel.setBorder(BorderFactory.createEmptyBorder(10, 0, 10, 0));
+        JLabel totalTextLabel = new JLabel("TOTAL BAYAR", SwingConstants.LEFT);
+        totalTextLabel.setFont(new Font("Arial", Font.BOLD, 16));
+        JLabel totalValueLabel = new JLabel("Rp " + String.format("%,d", total), SwingConstants.RIGHT);
+        totalValueLabel.setFont(new Font("Arial", Font.BOLD, 16));
+        totalValueLabel.setForeground(new Color(40, 167, 69));
+        totalPanel.add(totalTextLabel, BorderLayout.WEST);
+        totalPanel.add(totalValueLabel, BorderLayout.EAST);
+        
+       // Info pembayaran
+       JLabel infoLabel = new JLabel("<html><center>Pembayaran dengan CASH<br>Terima kasih telah berbelanja!</center></html>", SwingConstants.CENTER);
+       infoLabel.setFont(new Font("Arial", Font.PLAIN, 12));
+       infoLabel.setForeground(new Color(100, 100, 100));
+       
+       // Tombol Print dan Tutup
+    JButton printButton = new JButton("Print Nota");
+    printButton.setPreferredSize(new Dimension(120, 35));
+    printButton.setBackground(new Color(40, 167, 69));
+    printButton.setForeground(Color.WHITE);
+    printButton.setFocusPainted(false);
+    printButton.addActionListener(e -> {
+        notaDialog.dispose();
+        printNota(idNota, total, parentFrame.orderItems, "QRIS");
+    });
     
-    private void setupEventHandlers() {
+    JButton closeButton = new JButton("Tutup");
+    closeButton.setPreferredSize(new Dimension(100, 35));
+    closeButton.setBackground(new Color(70, 130, 180));
+    closeButton.setForeground(Color.WHITE);
+    closeButton.setFocusPainted(false);
+    closeButton.addActionListener(e -> notaDialog.dispose());
+    
+    JPanel buttonPanel = new JPanel(new FlowLayout(FlowLayout.CENTER));
+    buttonPanel.add(printButton);
+    buttonPanel.add(closeButton);
+    
+    mainPanel.add(headerPanel, BorderLayout.NORTH);
+    mainPanel.add(detailPanel, BorderLayout.CENTER);
+    
+    JPanel bottomPanel = new JPanel(new BorderLayout());
+    bottomPanel.add(totalPanel, BorderLayout.NORTH);
+    bottomPanel.add(infoLabel, BorderLayout.CENTER);
+    bottomPanel.add(buttonPanel, BorderLayout.SOUTH);
+    
+    mainPanel.add(bottomPanel, BorderLayout.SOUTH);
+    
+    notaDialog.setContentPane(mainPanel);
+    notaDialog.setVisible(true);
+}
+}
+
+   // Fix showQRISPopup method
+   private void showQRISPopup(int total) {
+       JDialog qrisDialog = new JDialog(this, "Pembayaran QRIS", true);
+       qrisDialog.setSize(350, 450);
+       qrisDialog.setLocationRelativeTo(this);
+
+       JPanel contentPanel = new JPanel(new BorderLayout(10, 10));
+       contentPanel.setBorder(BorderFactory.createEmptyBorder(15, 15, 15, 15));
+
+       int qrSize = 200;
+
+   // Load gambar QR atau buat placeholder jika gambar tidak ada
+   JLabel barcodeLabel = new JLabel();
+   barcodeLabel.setPreferredSize(new Dimension(qrSize, qrSize));
+   barcodeLabel.setMaximumSize(new Dimension(qrSize, qrSize));
+   barcodeLabel.setMinimumSize(new Dimension(qrSize, qrSize));
+   barcodeLabel.setBorder(BorderFactory.createLineBorder(Color.BLACK));
+   barcodeLabel.setHorizontalAlignment(SwingConstants.CENTER);
+   barcodeLabel.setVerticalAlignment(SwingConstants.CENTER);
+   
+   try {
+       // Coba load gambar QR
+       ImageIcon originalIcon = new ImageIcon("images/qr.jpg");
+       if (originalIcon.getIconWidth() > 0) {
+           // Jika gambar berhasil diload, resize
+           Image scaledImage = originalIcon.getImage().getScaledInstance(qrSize, qrSize, Image.SCALE_SMOOTH);
+           ImageIcon scaledIcon = new ImageIcon(scaledImage);
+           barcodeLabel.setIcon(scaledIcon);
+       } else {
+           // Jika gambar tidak ada, buat placeholder
+           barcodeLabel.setText("<html><center>QR CODE<br>PLACEHOLDER</center></html>");
+           barcodeLabel.setBackground(new Color(240, 240, 240));
+           barcodeLabel.setOpaque(true);
+       }
+   } catch (Exception e) {
+       // Jika ada error, buat placeholder
+       barcodeLabel.setText("<html><center>QR CODE<br>PLACEHOLDER</center></html>");
+       barcodeLabel.setBackground(new Color(240, 240, 240));
+       barcodeLabel.setOpaque(true);
+   }
+
+   JLabel detailLabel = new JLabel(
+       "<html><center>Total pembayaran:<br>Rp " + String.format("%,d", total) + "<br><br>" +
+       "Silakan scan QR code di atas menggunakan aplikasi QRIS Anda.</center></html>",
+       SwingConstants.CENTER);
+
+   JButton okButton = new JButton("Pembayaran Selesai");
+   okButton.setPreferredSize(new Dimension(200, 40));
+   okButton.setBackground(new Color(40, 167, 69));
+   okButton.setForeground(Color.WHITE);
+   okButton.setFocusPainted(false);
+   okButton.addActionListener(e -> {
+       qrisDialog.dispose();
+       String idNota = UUID.randomUUID().toString().substring(0, 8).toUpperCase();
+       showNotaPopupForQRIS(idNota, total);
+   });
+
+   JPanel buttonPanel = new JPanel(new FlowLayout(FlowLayout.CENTER));
+   buttonPanel.add(okButton);
+
+   contentPanel.add(barcodeLabel, BorderLayout.NORTH);
+   contentPanel.add(detailLabel, BorderLayout.CENTER);
+   contentPanel.add(buttonPanel, BorderLayout.SOUTH);
+
+   qrisDialog.setContentPane(contentPanel);
+   qrisDialog.setVisible(true);
+}
+
+private void showNotaPopupForQRIS(String idNota, int total) {
+    JDialog notaDialog = new JDialog(this, "Nota Pembayaran - QRIS", true);
+    notaDialog.setSize(400, 500);
+    notaDialog.setLocationRelativeTo(this);
+    
+    JPanel mainPanel = new JPanel(new BorderLayout(10, 10));
+    mainPanel.setBorder(BorderFactory.createEmptyBorder(20, 20, 20, 20));
+    
+    // Header nota
+    JPanel headerPanel = new JPanel(new BorderLayout());
+    JLabel titleLabel = new JLabel("NOTA PEMBAYARAN", SwingConstants.CENTER);
+    titleLabel.setFont(new Font("Arial", Font.BOLD, 18));
+    
+    JLabel idLabel = new JLabel("ID Pembayaran: " + idNota, SwingConstants.CENTER);
+    idLabel.setFont(new Font("Arial", Font.PLAIN, 14));
+    idLabel.setForeground(new Color(100, 100, 100));
+    
+    headerPanel.add(titleLabel, BorderLayout.NORTH);
+    headerPanel.add(idLabel, BorderLayout.CENTER);
+    
+    // Detail pesanan
+    JPanel detailPanel = new JPanel();
+    detailPanel.setLayout(new BoxLayout(detailPanel, BoxLayout.Y_AXIS));
+    detailPanel.setBorder(BorderFactory.createTitledBorder("Detail Pesanan"));
+    
+    CustomerFrame parentFrame = this;
+    for (OrderItem orderItem : parentFrame.orderItems) {
+        JPanel itemPanel = new JPanel(new BorderLayout());
+        itemPanel.setBorder(BorderFactory.createEmptyBorder(5, 5, 5, 5));
+        
+        JLabel itemLabel = new JLabel(orderItem.menuItem.name + " x" + orderItem.quantity);
+        itemLabel.setFont(new Font("Arial", Font.PLAIN, 12));
+        
+        JLabel priceLabel = new JLabel("Rp " + String.format("%,d", orderItem.menuItem.price * orderItem.quantity));
+        priceLabel.setFont(new Font("Arial", Font.PLAIN, 12));
+        
+        itemPanel.add(itemLabel, BorderLayout.WEST);
+        itemPanel.add(priceLabel, BorderLayout.EAST);
+        detailPanel.add(itemPanel);
+    }
+
+    JPanel totalPanel = new JPanel(new BorderLayout());
+    totalPanel.setBorder(BorderFactory.createEmptyBorder(10, 0, 10, 0));
+    JLabel totalTextLabel = new JLabel("TOTAL BAYAR", SwingConstants.LEFT);
+    totalTextLabel.setFont(new Font("Arial", Font.BOLD, 16));
+    JLabel totalValueLabel = new JLabel("Rp " + String.format("%,d", total), SwingConstants.RIGHT);
+    totalValueLabel.setFont(new Font("Arial", Font.BOLD, 16));
+    totalValueLabel.setForeground(new Color(40, 167, 69));
+    totalPanel.add(totalTextLabel, BorderLayout.WEST);
+    totalPanel.add(totalValueLabel, BorderLayout.EAST);
+    
+    // Info pembayaran
+    JLabel infoLabel = new JLabel("<html><center>Pembayaran dengan QRIS<br>Terima kasih telah berbelanja!</center></html>", SwingConstants.CENTER);
+    infoLabel.setFont(new Font("Arial", Font.PLAIN, 12));
+    infoLabel.setForeground(new Color(100, 100, 100));
+    
+    // Tombol Print dan Tutup
+    JButton printButton = new JButton("Print Nota");
+    printButton.setPreferredSize(new Dimension(120, 35));
+    printButton.setBackground(new Color(40, 167, 69));
+    printButton.setForeground(Color.WHITE);
+    printButton.setFocusPainted(false);
+    printButton.addActionListener(e -> {
+        notaDialog.dispose();
+        printNota(idNota, total, parentFrame.orderItems, "QRIS");
+    });
+    
+    JButton closeButton = new JButton("Tutup");
+    closeButton.setPreferredSize(new Dimension(100, 35));
+    closeButton.setBackground(new Color(70, 130, 180));
+    closeButton.setForeground(Color.WHITE);
+    closeButton.setFocusPainted(false);
+    closeButton.addActionListener(e -> notaDialog.dispose());
+    
+    JPanel buttonPanel = new JPanel(new FlowLayout(FlowLayout.CENTER));
+    buttonPanel.add(printButton);
+    buttonPanel.add(closeButton);
+    
+    mainPanel.add(headerPanel, BorderLayout.NORTH);
+    mainPanel.add(detailPanel, BorderLayout.CENTER);
+    
+    JPanel bottomPanel = new JPanel(new BorderLayout());
+    bottomPanel.add(totalPanel, BorderLayout.NORTH);
+    bottomPanel.add(infoLabel, BorderLayout.CENTER);
+    bottomPanel.add(buttonPanel, BorderLayout.SOUTH);
+    
+    mainPanel.add(bottomPanel, BorderLayout.SOUTH);
+    
+    notaDialog.setContentPane(mainPanel);
+    notaDialog.setVisible(true);
+}
+
+// 3. Method untuk menampilkan dialog sukses print
+private void showPrintSuccessDialog(String idNota, int total, List<OrderItem> orderItems, String paymentMethod) {
+    JDialog successDialog = new JDialog(this, "Nota Berhasil Dicetak", true);
+    successDialog.setSize(450, 550);
+    successDialog.setLocationRelativeTo(this);
+    
+    JPanel mainPanel = new JPanel(new BorderLayout(10, 10));
+    mainPanel.setBorder(BorderFactory.createEmptyBorder(20, 20, 20, 20));
+    
+    // Header
+    JPanel headerPanel = new JPanel(new BorderLayout());
+    JLabel titleLabel = new JLabel("✓ NOTA BERHASIL DICETAK", SwingConstants.CENTER);
+    titleLabel.setFont(new Font("Arial", Font.BOLD, 18));
+    titleLabel.setForeground(new Color(40, 167, 69));
+    
+    JLabel restaurantLabel = new JLabel("Dapur Arunika", SwingConstants.CENTER);
+    restaurantLabel.setFont(new Font("Serif", Font.BOLD, 16));
+    restaurantLabel.setForeground(new Color(70, 130, 180));
+    
+    headerPanel.add(titleLabel, BorderLayout.NORTH);
+    headerPanel.add(restaurantLabel, BorderLayout.CENTER);
+    
+    // Detail nota yang sudah dicetak
+    JPanel detailPanel = new JPanel();
+    detailPanel.setLayout(new BoxLayout(detailPanel, BoxLayout.Y_AXIS));
+    detailPanel.setBorder(BorderFactory.createTitledBorder("Detail Nota yang Dicetak"));
+    
+    // Info waktu dan ID
+    DateTimeFormatter formatter = DateTimeFormatter.ofPattern("dd/MM/yyyy HH:mm:ss");
+    String currentTime = LocalDateTime.now().format(formatter);
+    
+    JLabel timeLabel = new JLabel("Waktu: " + currentTime);
+    timeLabel.setFont(new Font("Arial", Font.PLAIN, 12));
+    timeLabel.setAlignmentX(Component.LEFT_ALIGNMENT);
+    
+    JLabel idLabel = new JLabel("ID Pembayaran: " + idNota);
+    idLabel.setFont(new Font("Arial", Font.PLAIN, 12));
+    idLabel.setAlignmentX(Component.LEFT_ALIGNMENT);
+    
+    JLabel methodLabel = new JLabel("Metode Pembayaran: " + paymentMethod);
+    methodLabel.setFont(new Font("Arial", Font.PLAIN, 12));
+    methodLabel.setAlignmentX(Component.LEFT_ALIGNMENT);
+    
+    detailPanel.add(timeLabel);
+    detailPanel.add(Box.createVerticalStrut(5));
+    detailPanel.add(idLabel);
+    detailPanel.add(Box.createVerticalStrut(5));
+    detailPanel.add(methodLabel);
+    detailPanel.add(Box.createVerticalStrut(10));
+    
+    // Daftar item
+    JLabel itemsLabel = new JLabel("Items:");
+    itemsLabel.setFont(new Font("Arial", Font.BOLD, 12));
+    itemsLabel.setAlignmentX(Component.LEFT_ALIGNMENT);
+    detailPanel.add(itemsLabel);
+    
+    for (OrderItem orderItem : orderItems) {
+        JPanel itemPanel = new JPanel(new BorderLayout());
+        itemPanel.setBorder(BorderFactory.createEmptyBorder(3, 10, 3, 10));
+        itemPanel.setAlignmentX(Component.LEFT_ALIGNMENT);
+        
+        JLabel itemLabel = new JLabel(orderItem.menuItem.name + " x" + orderItem.quantity);
+        itemLabel.setFont(new Font("Arial", Font.PLAIN, 11));
+        
+        JLabel priceLabel = new JLabel("Rp " + String.format("%,d", orderItem.menuItem.price * orderItem.quantity));
+        priceLabel.setFont(new Font("Arial", Font.PLAIN, 11));
+        
+        itemPanel.add(itemLabel, BorderLayout.WEST);
+        itemPanel.add(priceLabel, BorderLayout.EAST);
+        itemPanel.setMaximumSize(new Dimension(Integer.MAX_VALUE, itemPanel.getPreferredSize().height));
+        
+        detailPanel.add(itemPanel);
+    }
+    
+    // Total
+    JPanel totalPanel = new JPanel(new BorderLayout());
+    totalPanel.setBorder(BorderFactory.createEmptyBorder(10, 10, 10, 10));
+    totalPanel.setAlignmentX(Component.LEFT_ALIGNMENT);
+    
+    JLabel totalTextLabel = new JLabel("TOTAL BAYAR:");
+    totalTextLabel.setFont(new Font("Arial", Font.BOLD, 14));
+    
+    JLabel totalValueLabel = new JLabel("Rp " + String.format("%,d", total));
+    totalValueLabel.setFont(new Font("Arial", Font.BOLD, 14));
+    totalValueLabel.setForeground(new Color(40, 167, 69));
+    
+    totalPanel.add(totalTextLabel, BorderLayout.WEST);
+    totalPanel.add(totalValueLabel, BorderLayout.EAST);
+    totalPanel.setMaximumSize(new Dimension(Integer.MAX_VALUE, totalPanel.getPreferredSize().height));
+    
+    detailPanel.add(totalPanel);
+    
+    // Info message
+    JLabel infoLabel = new JLabel("<html><center>Nota telah berhasil dicetak!<br>Terima kasih telah berbelanja di Dapur Arunika</center></html>", SwingConstants.CENTER);
+    infoLabel.setFont(new Font("Arial", Font.PLAIN, 12));
+    infoLabel.setForeground(new Color(100, 100, 100));
+    
+    // Tombol tutup
+    JButton closeButton = new JButton("Tutup");
+    closeButton.setPreferredSize(new Dimension(120, 35));
+    closeButton.setBackground(new Color(70, 130, 180));
+    closeButton.setForeground(Color.WHITE);
+    closeButton.setFocusPainted(false);
+    closeButton.addActionListener(e -> successDialog.dispose());
+    
+    JPanel buttonPanel = new JPanel(new FlowLayout(FlowLayout.CENTER));
+    buttonPanel.add(closeButton);
+    
+    mainPanel.add(headerPanel, BorderLayout.NORTH);
+    mainPanel.add(detailPanel, BorderLayout.CENTER);
+    
+    JPanel bottomPanel = new JPanel(new BorderLayout());
+    bottomPanel.add(infoLabel, BorderLayout.CENTER);
+    bottomPanel.add(buttonPanel, BorderLayout.SOUTH);
+    
+    mainPanel.add(bottomPanel, BorderLayout.SOUTH);
+    
+    successDialog.setContentPane(mainPanel);
+    successDialog.setVisible(true);
+}
+
+private void setupEventHandlers() {
         // Window closing handler
         setDefaultCloseOperation(JFrame.DO_NOTHING_ON_CLOSE);
         addWindowListener(new java.awt.event.WindowAdapter() {
@@ -834,19 +1284,7 @@ public class CustomerFrame extends JFrame {
             dispose(); // Menutup frame
         }
     }
+}
 
-    // Main method untuk testing
-    public static void main(String[] args) {
-        SwingUtilities.invokeLater(() -> {
-            try {
-                UIManager.setLookAndFeel(UIManager.getSystemLookAndFeelClassName());
-            } catch (Exception e) {
-                e.printStackTrace();
-            }
-                                        new CustomerFrame().setVisible(true);
-                        });
-                    }
-                }
-            }
-        
-    
+
+   

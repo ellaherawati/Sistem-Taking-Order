@@ -26,6 +26,8 @@ public class LoginFrame extends JFrame {
             setupEventHandlers();
         });
     }
+
+    
     
     private void initializeComponents() {
         setTitle("Sistem Manajemen Restoran - Login");

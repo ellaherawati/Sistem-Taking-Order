@@ -1,63 +1,124 @@
 package model;
 
-import java.sql.Timestamp;
-
 public class User {
     private int id;
     private String username;
     private String password;
-    private Role role;
     private String fullName;
+    private String role;
     private String email;
     private String phone;
-    private Timestamp createdAt;
-    private Timestamp updatedAt;
+    private boolean active;
     
-    public enum Role {
-        KASIR, ADMIN, MANAGER, CUSTOMER
+    // Constructor
+    public User() {
+        this.active = true;
     }
     
-    // Constrs
-    public User() {}
-    
-    public User(String username, String password, Role role, String fullName, String email) {
+    public User(int id, String username, String password, String fullName, String role) {
+        this.id = id;
         this.username = username;
         this.password = password;
-        this.role = role;
         this.fullName = fullName;
-        this.email = email;
+        this.role = role;
+        this.active = true;
     }
     
     // Getters and Setters
-    public int getId() { return id; }
-    public void setId(int id) { this.id = id; }
+    public int getId() {
+        return id;
+    }
     
-    public String getUsername() { return username; }
-    public void setUsername(String username) { this.username = username; }
+    public void setId(int id) {
+        this.id = id;
+    }
     
-    public String getPassword() { return password; }
-    public void setPassword(String password) { this.password = password; }
+    public String getUsername() {
+        return username;
+    }
     
-    public Role getRole() { return role; }
-    public void setRole(Role role) { this.role = role; }
+    public void setUsername(String username) {
+        this.username = username;
+    }
     
-    public String getFullName() { return fullName; }
-    public void setFullName(String fullName) { this.fullName = fullName; }
+    public String getPassword() {
+        return password;
+    }
     
-    public String getEmail() { return email; }
-    public void setEmail(String email) { this.email = email; }
+    public void setPassword(String password) {
+        this.password = password;
+    }
     
-    public String getPhone() { return phone; }
-    public void setPhone(String phone) { this.phone = phone; }
+    public String getFullName() {
+        return fullName;
+    }
     
-    public Timestamp getCreatedAt() { return createdAt; }
-    public void setCreatedAt(Timestamp createdAt) { this.createdAt = createdAt; }
+    public void setFullName(String fullName) {
+        this.fullName = fullName;
+    }
     
-    public Timestamp getUpdatedAt() { return updatedAt; }
-    public void setUpdatedAt(Timestamp updatedAt) { this.updatedAt = updatedAt; }
+    public String getRole() {
+        return role;
+    }
+    
+    public void setRole(String role) {
+        this.role = role;
+    }
+    
+    public String getEmail() {
+        return email;
+    }
+    
+    public void setEmail(String email) {
+        this.email = email;
+    }
+    
+    public String getPhone() {
+        return phone;
+    }
+    
+    public void setPhone(String phone) {
+        this.phone = phone;
+    }
+    
+    public boolean isActive() {
+        return active;
+    }
+    
+    public void setActive(boolean active) {
+        this.active = active;
+    }
     
     @Override
     public String toString() {
-        return fullName + " (" + username + ")";
+        return fullName != null ? fullName : username;
+    }
+    
+    @Override
+    public boolean equals(Object obj) {
+        if (this == obj) return true;
+        if (obj == null || getClass() != obj.getClass()) return false;
+        User user = (User) obj;
+        return id == user.id;
+    }
+    
+    @Override
+    public int hashCode() {
+        return Integer.hashCode(id);
+    }
+
+    public static class Role {
+
+        public Role() {
+        }
+    }
+
+    public static class Role {
+
+        public Role() {
+        }
+    }
+
+    public class Role {
     }
 }
