@@ -61,8 +61,8 @@ public class User {
         return role;
     }
     
-    public void setRole(String role) {
-        this.role = role;
+    public void setRole(Role customer) {
+        this.role = customer;
     }
     
     public String getEmail() {
@@ -109,7 +109,17 @@ public class User {
 
     public static class Role {
 
+        public static final Role CUSTOMER = null;
+        public static final Role KASIR = null;
+        public static final Role MANAGER = null;
+        public static Role MANAGER;
+
         public Role() {
+        }
+
+        public static Object values() {
+            // TODO Auto-generated method stub
+            throw new UnsupportedOperationException("Unimplemented method 'values'");
         }
     }
 

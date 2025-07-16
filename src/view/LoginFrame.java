@@ -10,6 +10,7 @@ public class LoginFrame extends JFrame {
     private JTextField usernameField;
     private JPasswordField passwordField;
     private JButton loginButton;
+    private JButton customerButton;
     
     public LoginFrame() {
         // Set system look and feel
@@ -32,7 +33,7 @@ public class LoginFrame extends JFrame {
     private void initializeComponents() {
         setTitle("Sistem Manajemen Restoran - Login");
         setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
-        setSize(500, 650);
+        setSize(700, 900);
         setLocationRelativeTo(null);
         setResizable(false);
         
@@ -43,14 +44,17 @@ public class LoginFrame extends JFrame {
         usernameField = new JTextField();
         passwordField = new JPasswordField();
         loginButton = new JButton("LOGIN");
+        customerButton = new JButton("MASUK SEBAGAI CUSTOMER");
         
         // Set fonts - use fallback fonts for better compatibility
         Font inputFont = new Font(Font.SANS_SERIF, Font.PLAIN, 16);
         Font buttonFont = new Font(Font.SANS_SERIF, Font.BOLD, 16);
+        Font customerButtonFont = new Font(Font.SANS_SERIF, Font.BOLD, 14);
         
         usernameField.setFont(inputFont);
         passwordField.setFont(inputFont);
         loginButton.setFont(buttonFont);
+        customerButton.setFont(customerButtonFont);
         
         // Enhanced field styling
         usernameField.setBorder(BorderFactory.createCompoundBorder(
@@ -142,10 +146,23 @@ public class LoginFrame extends JFrame {
         loginButton.setBorderPainted(false);
         loginButton.setAlignmentX(Component.CENTER_ALIGNMENT);
         
-        // Set cursor
-        loginButton.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
+        // Customer Button styling
+        Dimension customerButtonSize = new Dimension(300, 45);
+        customerButton.setPreferredSize(customerButtonSize);
+        customerButton.setMinimumSize(customerButtonSize);
+        customerButton.setMaximumSize(customerButtonSize);
+        customerButton.setBackground(new Color(46, 204, 113));
+        customerButton.setForeground(Color.WHITE);
+        customerButton.setFocusPainted(false);
+        customerButton.setOpaque(true);
+        customerButton.setBorderPainted(false);
+        customerButton.setAlignmentX(Component.CENTER_ALIGNMENT);
         
-        // Add hover effect
+        // Set cursor for both buttons
+        loginButton.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
+        customerButton.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
+        
+        // Add hover effect for login button
         loginButton.addMouseListener(new java.awt.event.MouseAdapter() {
             @Override
             public void mouseEntered(java.awt.event.MouseEvent evt) {
@@ -162,10 +179,38 @@ public class LoginFrame extends JFrame {
             }
         });
         
-        // Create wrapper panel for button
-        JPanel buttonPanel = new JPanel(new FlowLayout(FlowLayout.CENTER));
-        buttonPanel.setBackground(Color.WHITE);
-        buttonPanel.add(loginButton);
+        // Add hover effect for customer button
+        customerButton.addMouseListener(new java.awt.event.MouseAdapter() {
+            @Override
+            public void mouseEntered(java.awt.event.MouseEvent evt) {
+                if (customerButton.isEnabled()) {
+                    customerButton.setBackground(new Color(39, 174, 96));
+                }
+            }
+            
+            @Override
+            public void mouseExited(java.awt.event.MouseEvent evt) {
+                if (customerButton.isEnabled()) {
+                    customerButton.setBackground(new Color(46, 204, 113));
+                }
+            }
+        });
+        
+        // Create wrapper panel for login button
+        JPanel loginButtonPanel = new JPanel(new FlowLayout(FlowLayout.CENTER));
+        loginButtonPanel.setBackground(Color.WHITE);
+        loginButtonPanel.add(loginButton);
+        
+        // Create wrapper panel for customer button
+        JPanel customerButtonPanel = new JPanel(new FlowLayout(FlowLayout.CENTER));
+        customerButtonPanel.setBackground(Color.WHITE);
+        customerButtonPanel.add(customerButton);
+        
+        // Separator
+        JLabel separatorLabel = new JLabel("atau");
+        separatorLabel.setFont(new Font(Font.SANS_SERIF, Font.PLAIN, 12));
+        separatorLabel.setForeground(new Color(127, 140, 141));
+        separatorLabel.setAlignmentX(Component.CENTER_ALIGNMENT);
         
         // Arrange form components
         formPanel.add(usernameLabel);
@@ -176,7 +221,11 @@ public class LoginFrame extends JFrame {
         formPanel.add(Box.createVerticalStrut(8));
         formPanel.add(createCenteredPanel(passwordField));
         formPanel.add(Box.createVerticalStrut(30));
-        formPanel.add(buttonPanel);
+        formPanel.add(loginButtonPanel);
+        formPanel.add(Box.createVerticalStrut(15));
+        formPanel.add(separatorLabel);
+        formPanel.add(Box.createVerticalStrut(15));
+        formPanel.add(customerButtonPanel);
         
         // Info Panel
         JPanel infoPanel = new JPanel();
@@ -188,7 +237,7 @@ public class LoginFrame extends JFrame {
         ));
         
         // Add some info text
-        JLabel infoLabel = new JLabel("Gunakan akun yang telah terdaftar untuk masuk", JLabel.CENTER);
+        JLabel infoLabel = new JLabel("<html><div style='text-align: center;'>Gunakan akun yang telah terdaftar untuk masuk<br/>atau masuk sebagai customer untuk melihat menu</div></html>", JLabel.CENTER);
         infoLabel.setFont(new Font(Font.SANS_SERIF, Font.PLAIN, 12));
         infoLabel.setForeground(new Color(127, 140, 141));
         infoPanel.add(infoLabel, BorderLayout.CENTER);
@@ -212,6 +261,9 @@ public class LoginFrame extends JFrame {
         // Login button action
         loginButton.addActionListener(e -> performLogin());
         
+        // Customer button action
+        customerButton.addActionListener(e -> openCustomerDashboard());
+        
         // Enter key support
         ActionListener loginAction = e -> performLogin();
         usernameField.addActionListener(loginAction);
@@ -233,6 +285,17 @@ public class LoginFrame extends JFrame {
         });
     }
     
+    private void openCustomerDashboard() {
+        try {
+            // Directly open customer dashboard without login
+            new CustomerFrame().setVisible(true);
+            dispose();
+        } catch (Exception e) {
+            showErrorDialog("Terjadi kesalahan saat membuka dashboard customer: " + e.getMessage());
+            e.printStackTrace();
+        }
+    }
+    
     private void performLogin() {
         String username = usernameField.getText().trim();
         String password = new String(passwordField.getPassword());
@@ -243,8 +306,9 @@ public class LoginFrame extends JFrame {
             return;
         }
         
-        // Disable button during login
+        // Disable buttons during login
         loginButton.setEnabled(false);
+        customerButton.setEnabled(false);
         loginButton.setText("Logging in...");
         
         // Simulate login process (replace with actual AuthController logic)
@@ -287,8 +351,9 @@ public class LoginFrame extends JFrame {
                     showErrorDialog("Terjadi kesalahan saat login: " + e.getMessage());
                     e.printStackTrace();
                 } finally {
-                    // Re-enable button
+                    // Re-enable buttons
                     loginButton.setEnabled(true);
+                    customerButton.setEnabled(true);
                     loginButton.setText("LOGIN");
                 }
             }

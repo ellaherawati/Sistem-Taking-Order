@@ -32,7 +32,7 @@ public class ManagerFrame extends JFrame {
     }
     
     private void initializeComponents() {
-        setTitle("Dashboard Manager - " + authController.getCurrentUser().getFullName());
+        setTitle("Dashboard Manager - " + ((Object) authController.getCurrentUser()).getFullName());
         setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
         setSize(1200, 800);
         setLocationRelativeTo(null);
@@ -106,7 +106,7 @@ public class ManagerFrame extends JFrame {
         titleLabel.setFont(new Font("Segoe UI", Font.BOLD, 22));
         titleLabel.setForeground(Color.WHITE);
         
-        JLabel userLabel = new JLabel("Sales Analytics - " + authController.getCurrentUser().getFullName());
+        JLabel userLabel = new JLabel("Sales Analytics - " + ((Object) authController.getCurrentUser()).getFullName());
         userLabel.setFont(new Font("Segoe UI", Font.PLAIN, 12));
         userLabel.setForeground(new Color(255, 255, 255, 200));
         
@@ -502,7 +502,7 @@ public class ManagerFrame extends JFrame {
             JOptionPane.YES_NO_OPTION);
         
         if (confirm == JOptionPane.YES_OPTION) {
-            authController.logout();
+            authController.logout(getTitle());
             dispose();
             new LoginFrame().setVisible(true);
         }

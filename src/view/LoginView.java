@@ -1,105 +1,101 @@
 package view;
 
+import controller.AuthController;
+import model.User;
+
 import javax.swing.*;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
-
-// Import frame customer agar bisa dipanggil setelah login sukses
-import view.CustomerFrame;
 
 public class LoginView extends JFrame {
 
     private JTextField usernameField;
     private JPasswordField passwordField;
     private JButton loginButton;
+    private JButton customerButton;
+
+    private AuthController authController;
 
     public LoginView() {
+        authController = new AuthController(); // pastikan AuthController sudah siap
+        
         initializeUI();
     }
 
     private void initializeUI() {
         setTitle("Login");
-        setSize(300, 150);
+        setSize(350, 180);
         setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
         setLocationRelativeTo(null);
 
         JPanel panel = new JPanel();
-        add(panel);
-        placeComponents(panel);
-    }
-
-    private void placeComponents(JPanel panel) {
         panel.setLayout(null);
+        add(panel);
 
         JLabel userLabel = new JLabel("Username:");
         userLabel.setBounds(10, 10, 80, 25);
         panel.add(userLabel);
 
         usernameField = new JTextField(20);
-        usernameField.setBounds(100, 10, 160, 25);
+        usernameField.setBounds(100, 10, 200, 25);
         panel.add(usernameField);
 
         JLabel passwordLabel = new JLabel("Password:");
-        passwordLabel.setBounds(10, 40, 80, 25);
+        passwordLabel.setBounds(10, 45, 80, 25);
         panel.add(passwordLabel);
 
         passwordField = new JPasswordField(20);
-        passwordField.setBounds(100, 40, 160, 25);
+        passwordField.setBounds(100, 45, 200, 25);
         panel.add(passwordField);
 
         loginButton = new JButton("Login");
-        loginButton.setBounds(100, 80, 80, 25);
+        loginButton.setBounds(100, 80, 90, 25);
         panel.add(loginButton);
 
-        // Action listener untuk tombol login
+        customerButton = new JButton("Customer");
+        customerButton.setBounds(210, 80, 90, 25);
+        panel.add(customerButton);
+
+        // Action listener untuk login
         loginButton.addActionListener(new ActionListener() {
             public void actionPerformed(ActionEvent e) {
                 performLogin();
             }
         });
+
+        // Action listener untuk tombol customer
+        customerButton.addActionListener(new ActionListener() {
+            public void actionPerformed(ActionEvent e) {
+                openCustomerPage();
+            }
+        });
     }
 
-    // Method untuk proses login sederhana
     private void performLogin() {
         String username = usernameField.getText();
         String password = new String(passwordField.getPassword());
 
-        // Contoh validasi sederhana, ganti dengan validasi sebenarnya
-        if ("customer".equals(username) && "pass123".equals(password)) {
-            // Panggil method redirect ke dashboard/customer
-            redirectToDashboard("CUSTOMER");
+        // Pakai AuthController untuk validasi login
+        String loggedInUser = authController.login(username, password);
+
+        if (loggedInUser != null) {
+            // Login sukses, arahkan ke dashboard sesuai role user
+            redirectToDashboard(loggedInUser.getRole());
         } else {
-            JOptionPane.showMessageDialog(this, "Username atau password salah", "Error", JOptionPane.ERROR_MESSAGE);
+            JOptionPane.showMessageDialog(this, "Username atau password salah", "Login Gagal", JOptionPane.ERROR_MESSAGE);
         }
     }
 
-    // Method untuk mengalihkan ke halaman dashboard sesuai role
-    private void redirectToDashboard(String role) {
-        switch (role) {
-            case "CUSTOMER":
-                // Membuka frame CustomerFrame
-                CustomerFrame customerFrame = new CustomerFrame();
-                customerFrame.setVisible(true);
-
-                // Tutup frame login setelah pindah ke customer page
-                this.dispose();
-                break;
-
-            // Jika ada role lain, bisa tambah di sini
-
-            default:
-                JOptionPane.showMessageDialog(this, "Role tidak dikenali", "Error", JOptionPane.ERROR_MESSAGE);
-                break;
-        }
+    private void openCustomerPage() {
+        CustomerFrame customerFrame = new CustomerFrame();
+        customerFrame.setVisible(true);
+        this.dispose(); // tutup halaman login
     }
 
-    // Main method untuk menjalankan login view
     public static void main(String[] args) {
-        SwingUtilities.invokeLater(new Runnable() {
-            public void run() {
-                LoginView loginView = new LoginView();
-                loginView.setVisible(true);
-            }
+        SwingUtilities.invokeLater(() -> {
+            LoginView loginView = new LoginView();
+            loginView.setVisible(true);
         });
     }
 }

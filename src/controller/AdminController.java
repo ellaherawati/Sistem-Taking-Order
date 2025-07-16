@@ -1,10 +1,10 @@
 package controller;
 
-import dao.UserDAO;
 import dao.MenuItemDAO;
-import model.User;
-import model.MenuItem;
+import dao.UserDAO;
 import java.util.List;
+import model.MenuItem;
+import model.User;
 
 public class AdminController {
     private UserDAO userDAO;
@@ -20,7 +20,7 @@ public class AdminController {
     }
 
     public boolean createEmployee(String username, String password, User.Role role, String fullName, String email, String phone) {
-        User user = new User(username, password, role, fullName, email);
+        User user = new User();
         user.setPhone(phone);
         return userDAO.createUser(user);
     }
